@@ -8,18 +8,17 @@ This provides a plugin to enable lombok in eclipse che.
 
 ### 1- Change Version
 
-change version to your current eclipse che version in
+change version to your current eclipse che version in these files
 
 	plugin-lombok/che-plugin-lombok-server/pom.xml
 	plugin-lombok/pom.xml
 
-files
 
 ### 2- Copy plugin folder to eclipse che plugins
 
 put the repo inside plugins folder of che source
 
-add '  <module>plugin-lombok</module>' in plugins/pom.xml
+add ```<module>plugin-lombok</module>``` in plugins/pom.xml
 
 
 You can insert the module anywhere in the list. After you have inserted it, run `mvn sortpom:sort` and maven will order the pom.xml for you.
@@ -30,7 +29,7 @@ Introduce the server part of the extension as a dependency in `/che/assembly/ass
 
 Add: 
 
-
+```
 <dependency>
      <groupId>org.eclipse.che.plugin</groupId>
    <artifactId>che-plugin-lombok-server</artifactId>
@@ -41,23 +40,28 @@ Add:
         </exclusion>
     </exclusions>
 </dependency>
-
+```
 
 You can insert the dependency anywhere in the list. After you have inserted it, run `mvn sortpom:sort` and maven will order the pom.xml for you.
 
 ### 4- Add dependancy to che-parent
 
 
+```
 <dependency>
     <groupId>org.eclipse.che.plugin</groupId>
     <artifactId>che-plugin-lombok-server</artifactId>
     <version>${che.version}</version>
 </dependency>
-
+```
 
 You can insert the dependency anywhere in the list. After you have inserted it, run `mvn sortpom:sort` and maven will order the pom.xml for you.
 
-### 4- Rebuild Eclipse Che
+### 5- Build plugin-lombok
+
+Run ```mvn clean install -Denforcer.skip=true``` in plugin-lombok folder
+
+### 6- Rebuild Eclipse Che
 
 
 ```Shell
@@ -79,17 +83,52 @@ cd assembly/assembly-main
 mvn clean install
 ```
 
+or
 
 
-### 4- Run Eclipse Che
 
 ```Shell
-## Start Che using the CLI with your new assembly
-### Replace <version> with the actual directory name
-export CHE_ASSEMBLY=path_to_che_sources/assembly/assembly-main/target/eclipse-che-<version>/eclipse-che-<version>
-che start
+## Build whole assembly
+### This will bundle into the assembly
+cd che/assembly
+mvn clean install
 ```
 
+
+### 7- Change properties
+
+```
+## Replace che.workspace.java_opts with this line
+che.workspace.java_opts=-Xms1024m -Xmx3072m -javaagent:/home/user/lombok.jar=ECJ -Djava.security.egd=file:/dev/./urandom
+
+and put che.properties in <path>data/conf folder
+```
+
+### 8- Run Eclipse Che
+
+```Shell
+## Start Che using the Docker Server with your new assembly
+### 1- Build docker Image containing new assembly
+Under che/assembly folder run
+`sudo docker build -t eclipse/che-server .`
+
+### 2- Build Workspace Image
+Create a workspace image with che-plugin-lombok-server-<version>.jar copied in /home/user/lombok.jar
+
+You can start a container with codenvy/ubuntu_jdk8 and copy the jar to correct path and commit your contaner to a new image
+later you have to start workspace with that image.
+### 3- Run eclipse che with newly created image
+
+sudo docker run \
+	-p 9000:8080 -p 8000:8000 --name che-server --rm \
+	-v /var/run/docker.sock:/var/run/docker.sock \
+	-v <path to data folder>:/data \
+	-v <path to data folder>/conf:/conf \
+	-e CHE_LOG_LEVEL=DEBUG \
+	-e CHE_IP=<your ip> \
+	-e CHE_DEBUG_SERVER=true \
+	eclipse/che-server
+```
 
 ### Documentation resources
 
